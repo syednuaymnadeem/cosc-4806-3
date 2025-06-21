@@ -1,6 +1,14 @@
 <?php
 
 class Controller {
+
+    public function __construct()
+    {
+    
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
     
     public function model ($model) {
         require_once 'app/models/' .$model . '.php';
