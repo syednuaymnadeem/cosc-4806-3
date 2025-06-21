@@ -2,11 +2,11 @@
 
 class Login extends Controller {
 
-    public function index() {		
+    public function index(): void {		
 	    $this->view('login/index');
     }
     
-    public function verify(){
+    public function verify(): void{
 			$username = $_REQUEST['username'];
 			$password = $_REQUEST['password'];
 		
@@ -35,8 +35,27 @@ class Login extends Controller {
 			$this->view('login/index',['error'=>'Invalid credentials.']);
 	}
 
-	 public function create() { /* step 5 */ }}
+	public function create(): void
+	{
+			$u = trim($_POST['username'] ?? '');
+			$p = $_POST['password'] ?? '';
 
+			$user   = new User();
+			$result = $user->create($u, $p);
+
+			if ($result === true) {
+					header('Location: /login?new=1');
+					exit;
+			}
+			
+			$_SESSION['error'] = $result;
+			header('Location: /login');
+			exit;
+	}
 }
 
- }<br>
+
+
+
+
+ 
