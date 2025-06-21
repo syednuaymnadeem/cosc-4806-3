@@ -1,7 +1,15 @@
 <?php
-if (!isset($_SESSION['auth'])) {
-    header('Location: /login');
-}
+
+  if (session_status() === PHP_SESSION_NONE) {
+      session_start();       
+  }
+
+  if (!isset($_SESSION['auth'])) {
+      header('Location: /login');
+      exit;                                      
+  }
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
