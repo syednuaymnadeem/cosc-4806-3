@@ -80,7 +80,7 @@ class User {
             $this->logAttempt($username,'bad');
 
             if(isset($_SESSION['failedAuth'])) {
-                $_SESSION['failedAuth'] ++; //increment
+                $_SESSION['failedAuth'] ++;
             } else {
                 $_SESSION['failedAuth'] = 1;
             }
@@ -89,7 +89,7 @@ class User {
         }
     }
 
-    /* ---------- optional: get all users, handy for admin  ── NEW CODE */
+
     public function get_all_users() {
         $stmt = $this->db->prepare("SELECT username FROM users");
         $stmt->execute();
