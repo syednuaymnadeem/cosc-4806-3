@@ -9,6 +9,7 @@ class User {
     private $db;
     public function __construct() { $this->db = db_connect(); }
 
+
     public function test () {
       $db = db_connect();
       $statement = $db->prepare("select * from users;");
@@ -17,56 +18,81 @@ class User {
       return $rows;
     }
 
-    public function create_user($username, $password) {
-        $db = db_connect();
 
-        if ($this->username_exists($username)) {
-            return "Username already exists.";
-        }
-
-        // Simplified password rule
-        if (strlen($password) < 8) {
-            return "Password must be at least 8 characters long.";
-        }
-
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-        $stmt = $db->prepare("INSERT INTO users (username, password) VALUES (:username, :password)");
-        $stmt->execute([
-            ':username' => $username,
-            ':password' => $hashed_password
-        ]);
-
-        return true;
+    private function username_exists($username) {
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE username = :u");
+        $stmt->execute([':u' => strtolower($username)]);
+        return $stmt->fetch() !== false;
     }
 
+
+
+    private function logAttempt(string $username,string $status): void
+    {
+        $sql = "INSERT INTO login_log (username,status) VALUES (:u,:s)";
+        $this->db->prepare($sql)->execute([':u'=>$username,':s'=>$status]);
+    }
+
+
+    private function failedAttemptsLastMinute(string $username): int
+    {
+        $sql="SELECT COUNT(*) FROM login_log
+              WHERE username=:u AND status='bad'
+                AND ts > DATE_SUB(NOW(), INTERVAL 60 SECOND)";
+        $st=$this->db->prepare($sql);
+        $st->execute([':u'=>$username]);
+        return (int)$st->fetchColumn();
+    }
+
+    private function isLockedOut(string $username): bool  
+    {
+        return $this->failedAttemptsLastMinute($username) >= 3;
+    }
+
+
     public function authenticate($username, $password) {
-        /*
-         * if username and password good then
-         * $this->auth = true;
-         */
-		$username = strtolower($username);
-		$db = db_connect();
+
+
+        if ($this->isLockedOut($username)) {
+            $_SESSION['error'] = "Locked out for 60 seconds after 3 failed logins.";
+            header('Location: /login');
+            die;
+        }
+
+        $username = strtolower($username);
+        $db = db_connect();
         $statement = $db->prepare("select * from users WHERE username = :name;");
         $statement->bindValue(':name', $username);
         $statement->execute();
         $rows = $statement->fetch(PDO::FETCH_ASSOC);
-		
-		if (password_verify($password, $rows['password'])) {
-			$_SESSION['auth'] = 1;
-			$_SESSION['username'] = ucwords($username);
-			unset($_SESSION['failedAuth']);
-			header('Location: /home');
-			die;
-		} else {
-			if(isset($_SESSION['failedAuth'])) {
-				$_SESSION['failedAuth'] ++; //increment
-			} else {
-				$_SESSION['failedAuth'] = 1;
-			}
-			header('Location: /login');
-			die;
-		}
+
+        if (password_verify($password, $rows['password'])) {
+        
+            $this->logAttempt($username,'good');
+
+            $_SESSION['auth'] = 1;
+            $_SESSION['username'] = ucwords($username);
+            unset($_SESSION['failedAuth']);
+            header('Location: /home');
+            die;
+        } else {
+         
+            $this->logAttempt($username,'bad');
+
+            if(isset($_SESSION['failedAuth'])) {
+                $_SESSION['failedAuth'] ++; //increment
+            } else {
+                $_SESSION['failedAuth'] = 1;
+            }
+            header('Location: /login');
+            die;
+        }
     }
 
+    /* ---------- optional: get all users, handy for admin  ── NEW CODE */
+    public function get_all_users() {
+        $stmt = $this->db->prepare("SELECT username FROM users");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
