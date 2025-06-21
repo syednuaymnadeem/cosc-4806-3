@@ -6,9 +6,8 @@ class User {
     public $password;
     public $auth = false;
 
-    public function __construct() {
-        
-    }
+    private $db;
+    public function __construct() { $this->db = db_connect(); }
 
     public function test () {
       $db = db_connect();
