@@ -2,10 +2,10 @@
 
 class Logout extends Controller {
 
-    public function index() {		
-	    session_start();
-        $_SESSION = array();
+    public function index(): void
+    {
         session_destroy();
-        header('location:/login');
+        header('Location: /login');
+        exit;
     }
 }
